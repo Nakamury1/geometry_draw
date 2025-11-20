@@ -1,122 +1,140 @@
-//Initialisation des variables
-
+// ---------------------------------------------
+// Initialisation des variables
+// ---------------------------------------------
 let NP = 600;
 let PI = Math.PI;
 
-// ----------------------------------------------------
-function setup() {
-  INIT({svg:true});
-  TRACE();
+// Le SVG sera construit ici
+let svg = "";
+
+// ---------------------------------------------
+// Export du SVG
+// ---------------------------------------------
+function saveSVG(svgCode, filename = "dessin.svg") {
+  const blob = new Blob([svgCode], { type: "image/svg+xml;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
-// ----------------------------------------------------
-// INIT — initialisation du canvas, couleurs, etc.
-// ----------------------------------------------------
+// ---------------------------------------------
+function setup() {
+  INIT();
+  TRACE();
+
+  // Fermeture de la balise <svg>
+  svg += "</svg>";
+
+  // Sauvegarde finale
+  saveSVG(svg);
+}
+
+// ---------------------------------------------
+// INIT — initialisation du SVG
+// ---------------------------------------------
 function INIT() {
   createCanvas(NP, NP);
   noLoop();
   background(40);
+
+  svg = `
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="${NP}" height="${NP}"
+     viewBox="0 0 ${NP} ${NP}">
+  <rect width="100%" height="100%" fill="rgb(40,40,40)" />
+  <g transform="translate(${NP/2},${NP/2})">
+`;
 }
 
-// ----------------------------------------------------
-// TRACE — tout le dessin
-// ----------------------------------------------------
+// ---------------------------------------------
+// TRACE — tout le dessin converti en SVG
+// ---------------------------------------------
 function TRACE() {
 
-  push();
-  translate(NP/2, NP/2);
-
-  // ----------------------------------------------------
+  // ------------------------------
   // Cercles fragmentés concentriques
-  // ----------------------------------------------------
-  push();
-  rotate(PI/6);
-  noFill();
-  strokeWeight(3);
+  // ------------------------------
+  svg += `<g transform="rotate(${180/6})">\n`;
   for (let i = 0; i < 8; i++) {
-    stroke(255 - i * 20, 100 - i * 15, 100 - i * 10);
     let r = 280 - i * 15;
+    let R = r/2;
+    let col = `rgb(${255 - i*20},${100 - i*15},${100 - i*10})`;
+
     for (let j = 0; j < 8; j++) {
-      arc(0, 0, r, r, j * PI/4, j * PI/4 + PI/4 - 0.2);
+      let a1 = j * PI/4;
+      let a2 = a1 + PI/4 - 0.2;
+      let x1 = R * Math.cos(a1);
+      let y1 = R * Math.sin(a1);
+      let x2 = R * Math.cos(a2);
+      let y2 = R * Math.sin(a2);
+
+      svg += `<path d="M ${x1} ${y1} A ${R} ${R} 0 0 1 ${x2} ${y2}" fill="none" stroke="${col}" stroke-width="3"/>\n`;
     }
   }
-  pop();
+  svg += `</g>\n`;
 
-  // ----------------------------------------------------
+  // ------------------------------
   // Cercles déconstruits en anneau
-  // ----------------------------------------------------
-  push();
-  rotate(-PI/2.5);
+  // ------------------------------
+  svg += `<g transform="rotate(${-180/2.5})">\n`;
   for (let i = 0; i < 12; i++) {
     let radius = 180;
-    let x = cos(i * PI/6) * radius;
-    let y = sin(i * PI/6) * radius;
-    fill(255, 200, 100 + i * 10, 120);
-    noStroke();
-    circle(x, y, 30 - i * 1.5);
+    let x = Math.cos(i * PI/6) * radius;
+    let y = Math.sin(i * PI/6) * radius;
+    let s = 30 - i * 1.5;
+    svg += `<circle cx="${x}" cy="${y}" r="${s/2}" fill="rgba(255,200,${100+i*10},0.47)"/>\n`;
   }
-  pop();
+  svg += `</g>\n`;
 
-  // ----------------------------------------------------
+  // ------------------------------
   // Rosace à 8 branches
-  // ----------------------------------------------------
-  push();
-  let rRosace = 140;
-  noFill();
-  stroke(150, 10, 250, 180);
-  strokeWeight(2);
-
-  // Cercle central
-  circle(0, 0, rRosace * 2);
-
-  // 8 cercles autour
+  // ------------------------------
+  svg += `<g stroke="rgba(150,10,250,0.7)" stroke-width="2" fill="none">\n`;
+  svg += `<circle cx="0" cy="0" r="140"/>\n`;
   for (let i = 0; i < 8; i++) {
-    let angle = i * PI/4;
-    let cx = cos(angle) * rRosace;
-    let cy = sin(angle) * rRosace;
-    circle(cx, cy, rRosace * 2);
+    let ang = i * PI/4;
+    let cx = Math.cos(ang) * 140;
+    let cy = Math.sin(ang) * 140;
+    svg += `<circle cx="${cx}" cy="${cy}" r="140"/>\n`;
   }
-  pop();
+  svg += `</g>\n`;
 
-  // ----------------------------------------------------
+  // ------------------------------
   // Hexagones emboîtés
-  // ----------------------------------------------------
-  push();
-  rotate(PI/9);
-  stroke(100, 100, 255);
-  strokeWeight(2);
-  noFill();
-
+  // ------------------------------
+  svg += `<g transform="rotate(${180/9})" stroke="rgb(100,100,255)" stroke-width="2" fill="none">\n`;
   for (let i = 0; i < 4; i++) {
-    beginShape();
+    let pts = [];
+    let r = 100 + i * 30;
     for (let j = 0; j < 6; j++) {
-      let r = 100 + i * 30;
       let a = j * PI/3 + i * PI/12;
-      vertex(cos(a) * r, sin(a) * r);
+      pts.push(`${Math.cos(a)*r},${Math.sin(a)*r}`);
     }
-    endShape(CLOSE);
+    svg += `<polygon points="${pts.join(" ")}"/>\n`;
   }
-  pop();
+  svg += `</g>\n`;
 
-  // ----------------------------------------------------
+  // ------------------------------
   // Arcs fragmentés externes
-  // ----------------------------------------------------
-  push();
-  rotate(PI/4);
-  noFill();
-  strokeWeight(4);
-
+  // ------------------------------
+  svg += `<g transform="rotate(${180/4})">\n`;
   for (let i = 0; i < 16; i++) {
+    let R = 250/2;
     let hue = i * 22.5;
-    stroke(
-      150 + cos(hue * PI/180) * 50,
-      100 + sin(hue * PI/180) * 50,
-      255,
-      180
-    );
-    arc(0, 0, 250, 250, i * PI/8, i * PI/8 + PI/12);
+    let col = `rgb(${150+Math.cos(hue*PI/180)*50},${100+Math.sin(hue*PI/180)*50},255)`;
+    let a1 = i * PI/8;
+    let a2 = a1 + PI/12;
+    let x1 = R * Math.cos(a1);
+    let y1 = R * Math.sin(a1);
+    let x2 = R * Math.cos(a2);
+    let y2 = R * Math.sin(a2);
+    svg += `<path d="M ${x1} ${y1} A ${R} ${R} 0 0 1 ${x2} ${y2}" fill="none" stroke="${col}" stroke-width="4"/>\n`;
   }
-  pop();
+  svg += `</g>\n`;
 
-  pop();
+  // Fermeture du groupe principal
+  svg += `</g>\n`;
 }
